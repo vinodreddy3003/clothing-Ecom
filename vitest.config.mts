@@ -1,11 +1,11 @@
 import { defineConfig } from "vitest/config";
 import path from "node:path";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 // Tests run against a real Postgres (DATABASE_URL from .env.test) because the guarantees we test
 // (no overselling, single stock restore) live in SQL conditional updates.
 const testEnv = Object.fromEntries(
-  readFileSync(".env.test", "utf8")
+  (existsSync(".env.test") ? readFileSync(".env.test", "utf8") : `DATABASE_URL=${process.env.DATABASE_URL ?? ""}`)
     .split("\n")
     .filter((l) => l.includes("="))
     .map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim().replace(/^"|"$/g, "")]),

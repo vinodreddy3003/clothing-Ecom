@@ -4,6 +4,7 @@ const cdn = process.env.NEXT_PUBLIC_CDN_URL ? new URL(process.env.NEXT_PUBLIC_CD
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  outputFileTracingRoot: process.cwd(),
   poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],

@@ -37,7 +37,7 @@ export const loginSchema = z.object({
 
 export const profileSchema = z.object({
   name: required("Name", 100),
-  phone: phone.optional().or(z.literal("")).transform((v) => v || null),
+  phone: phone.nullish().or(z.literal("")).transform((v) => v || null),
 });
 
 export const passwordChangeSchema = z.object({
@@ -49,7 +49,7 @@ export const addressSchema = z.object({
   fullName: required("Full name", 100),
   phone,
   line1: required("Address", 200),
-  line2: trimmed(200).optional().transform((v) => v || null),
+  line2: trimmed(200).nullish().transform((v) => v || null),
   city: required("City", 100),
   state: required("State", 100),
   postalCode: z.string().trim().regex(/^[0-9]{6}$/, "Enter a 6-digit PIN code"),
@@ -143,7 +143,7 @@ export type ProductInput = z.infer<typeof productSchema>;
 export const categorySchema = z.object({
   name: required("Name", 80),
   slug,
-  description: trimmed(500).optional().transform((v) => v || null),
+  description: trimmed(500).nullish().transform((v) => v || null),
   imageUrl: optionalUrl,
   isActive: z.boolean(),
   showInNav: z.boolean(),
@@ -176,8 +176,8 @@ export const refundSchema = z.object({
 
 export const bannerSchema = z.object({
   title: required("Title", 120),
-  subtitle: trimmed(200).optional().transform((v) => v || null),
-  ctaLabel: trimmed(40).optional().transform((v) => v || null),
+  subtitle: trimmed(200).nullish().transform((v) => v || null),
+  ctaLabel: trimmed(40).nullish().transform((v) => v || null),
   ctaHref: optionalUrl,
   imageUrl: required("Image", 1000),
   isActive: z.boolean(),
@@ -186,7 +186,7 @@ export const bannerSchema = z.object({
 export const collectionSchema = z.object({
   name: required("Name", 100),
   slug,
-  description: trimmed(500).optional().transform((v) => v || null),
+  description: trimmed(500).nullish().transform((v) => v || null),
   imageUrl: optionalUrl,
   showOnHome: z.boolean(),
   isActive: z.boolean(),
@@ -200,7 +200,7 @@ export const couponSchema = z
       .trim()
       .toUpperCase()
       .regex(/^[A-Z0-9]{3,20}$/, "3–20 letters or numbers"),
-    description: trimmed(200).optional().transform((v) => v || null),
+    description: trimmed(200).nullish().transform((v) => v || null),
     type: z.enum(["PERCENT", "FIXED"]),
     value: z.coerce.number().int().min(1),
     minSubtotal: money.default(0),
@@ -214,17 +214,17 @@ export const couponSchema = z
 
 export const settingsSchema = z.object({
   storeName: required("Store name", 80),
-  tagline: trimmed(160).optional().transform((v) => v || null),
+  tagline: trimmed(160).nullish().transform((v) => v || null),
   logoUrl: optionalUrl,
-  email: z.string().trim().email().optional().or(z.literal("")).transform((v) => v || null),
-  phone: trimmed(20).optional().transform((v) => v || null),
-  address: trimmed(300).optional().transform((v) => v || null),
+  email: z.string().trim().email().nullish().or(z.literal("")).transform((v) => v || null),
+  phone: trimmed(20).nullish().transform((v) => v || null),
+  address: trimmed(300).nullish().transform((v) => v || null),
   currency: z.enum(["INR"]), // Razorpay settlement currency; extend when multi-currency is needed
   shippingFee: money,
   freeShippingThreshold: money.optional().nullable().transform((v) => v || null),
   codEnabled: z.boolean(),
   codMaxTotal: money.optional().nullable().transform((v) => v || null),
-  announcement: trimmed(160).optional().transform((v) => v || null),
+  announcement: trimmed(160).nullish().transform((v) => v || null),
 });
 
 export const pageSchema = z.object({

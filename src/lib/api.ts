@@ -1,6 +1,6 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
-import { ZodError, type ZodType } from "zod";
+import { ZodError, type ZodTypeAny, type output } from "zod";
 import { Prisma } from "@prisma/client";
 import { HttpError } from "@/lib/errors";
 
@@ -42,7 +42,7 @@ export function errorResponse(err: unknown) {
   return NextResponse.json({ error: "Something went wrong on our side. Try again." }, { status: 500 });
 }
 
-export async function parseBody<T>(req: NextRequest, schema: ZodType<T>): Promise<T> {
+export async function parseBody<S extends ZodTypeAny>(req: NextRequest, schema: S): Promise<output<S>> {
   const json = await req.json().catch(() => {
     throw new HttpError(400, "Request body must be JSON.");
   });

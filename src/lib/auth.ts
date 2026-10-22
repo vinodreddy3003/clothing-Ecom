@@ -45,8 +45,8 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     include: { user: { select: { id: true, email: true, name: true, phone: true, role: true, isActive: true } } },
   });
   if (!session || session.expiresAt < new Date() || !session.user.isActive) return null;
-  const { isActive: _, ...user } = session.user;
-  return user;
+  const { id, email, name, phone, role } = session.user;
+  return { id, email, name, phone, role };
 }
 
 /** For server components/pages: redirect to login when not signed in. */
