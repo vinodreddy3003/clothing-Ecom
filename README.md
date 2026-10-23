@@ -64,7 +64,7 @@ Without S3 settings, admin uploads are saved to `public/uploads`.
 | `AWS_REGION`, `S3_BUCKET` | production | Product image storage |
 | `NEXT_PUBLIC_CDN_URL` | production | CloudFront URL that serves the bucket |
 
-Never commit `.env`. In AWS, store these in Secrets Manager / SSM Parameter Store and inject them into the container.
+Never commit `.env`. For production, start from [`.env.production.example`](.env.production.example): it lists every variable with an RDS/Razorpay-live/S3 example and marks which are build-time (`NEXT_PUBLIC_*`, passed as `--build-arg`), runtime, and secret. In AWS, store secrets in Secrets Manager / SSM Parameter Store and inject them into the container.
 
 ## Database
 
