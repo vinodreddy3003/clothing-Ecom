@@ -18,9 +18,11 @@ export async function GET() {
     return NextResponse.json({ ok: true, db: "ok" });
   } catch (err) {
     const code =
-      err instanceof Prisma.PrismaClientInitializationError || err instanceof Prisma.PrismaClientKnownRequestError
-        ? err.errorCode ?? (err as Prisma.PrismaClientKnownRequestError).code
-        : undefined;
+      err instanceof Prisma.PrismaClientInitializationError
+        ? err.errorCode
+        : err instanceof Prisma.PrismaClientKnownRequestError
+          ? err.code
+          : undefined;
     const kind = err instanceof Error ? err.constructor.name : "UnknownError";
     // First line of Prisma's message names the problem (unreachable host, auth failed, missing engine) without the URL.
     const hint = err instanceof Error ? err.message.split("\n").filter(Boolean).at(-1)?.replace(/postgres(ql)?:\/\/\S+/g, "<url>").slice(0, 200) : undefined;
