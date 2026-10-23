@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, User } from "lucide-react";
+import { Heart, LayoutDashboard, User } from "lucide-react";
 import type { SessionUser } from "@/lib/auth";
 import { BagButton, DesktopNavLink } from "@/components/store/header-client";
 import { SearchBar } from "@/components/store/search-bar";
@@ -54,6 +54,16 @@ export function SiteHeader({ user, storeName, logoUrl, categories }: Props) {
         <SearchBar className="ml-auto hidden max-w-sm flex-1 md:flex" showFilter={false} />
 
         <div className="flex items-center gap-2">
+          {user?.role === "ADMIN" && (
+            <Link
+              href="/admin"
+              className="flex h-11 items-center gap-2 rounded-full bg-ink px-4 text-[15px] font-semibold text-paper hover:bg-ink/85"
+            >
+              <LayoutDashboard className="size-4" strokeWidth={1.75} aria-hidden />
+              <span className="hidden sm:inline">Store admin</span>
+              <span className="sm:hidden">Admin</span>
+            </Link>
+          )}
           <Link
             href="/wishlist"
             aria-label="Wishlist"

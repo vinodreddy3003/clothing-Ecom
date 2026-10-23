@@ -59,7 +59,8 @@ export async function requireUserPage(next = "/account") {
 export async function requireAdminPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/admin");
-  if (user.role !== "ADMIN") redirect("/");
+  // Signed in, but not an admin: explain on the sign-in page instead of silently bouncing to the store.
+  if (user.role !== "ADMIN") redirect("/login?next=/admin&reason=admin");
   return user;
 }
 

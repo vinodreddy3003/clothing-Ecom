@@ -7,12 +7,21 @@ import { AuthShell } from "@/components/store/auth-shell";
 
 export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; reason?: string }> }) {
+  const { next, reason } = await searchParams;
   const user = await getCurrentUser();
-  if (user) redirect(safeNext(next) ?? (user.role === "ADMIN" ? "/admin" : "/account"));
+  const needsAdmin = reason === "admin" && user && user.role !== "ADMIN";
+  if (user && !needsAdmin) redirect(safeNext(next) ?? (user.role === "ADMIN" ? "/admin" : "/account"));
   return (
-    <AuthShell title="Welcome back" body="Sign in to check out faster and track your orders.">
+    <AuthShell
+      title={needsAdmin ? "Admin sign in" : "Welcome back"}
+      body={needsAdmin ? "The dashboard is for store admins." : "Sign in to check out faster and track your orders."}
+    >
+      {needsAdmin && (
+        <p role="status" className="mb-4 rounded-2xl bg-tile p-3 text-[15px]">
+          You&apos;re signed in as {user.email}, which isn&apos;t an admin account. Sign in with an admin account to open the dashboard.
+        </p>
+      )}
       <AuthForm mode="login" next={next} />
     </AuthShell>
   );

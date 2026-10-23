@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +12,6 @@ import { Field, errorProps, inputClass } from "@/components/store/form-field";
 import { safeNext } from "@/components/store/safe-next";
 
 export function AuthForm({ mode, next }: { mode: "login" | "register"; next?: string }) {
-  const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const isLogin = mode === "login";
   const {
@@ -29,8 +27,9 @@ export function AuthForm({ mode, next }: { mode: "login" | "register"; next?: st
     setFormError(null);
     try {
       const { role } = await api<{ role: "ADMIN" | "CUSTOMER" }>(`/api/auth/${mode}`, { body: values });
-      router.replace(safeNext(next) ?? (role === "ADMIN" ? "/admin" : "/account"));
-      router.refresh();
+      // Full navigation so the new session cookie is used everywhere (header, layouts, admin guard).
+      // router.replace + router.refresh races: the refresh re-renders /login and the redirect is lost.
+      window.location.assign(safeNext(next) ?? (role === "ADMIN" ? "/admin" : "/account"));
     } catch (e) {
       if (e instanceof ApiError && e.fields) {
         for (const [k, v] of Object.entries(e.fields)) setError(k as "email", { message: v });
