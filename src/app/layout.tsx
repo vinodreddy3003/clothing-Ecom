@@ -4,6 +4,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { getSettings } from "@/lib/settings";
 import "./globals.css";
 
+// Metadata reads store settings from the database, so nothing is prerendered at build time
+// (CI/Netlify builds have no database access). Every store page is dynamic anyway.
+export const dynamic = "force-dynamic";
+
 const urbanist = Urbanist({ variable: "--font-urbanist", subsets: ["latin"], display: "swap" });
 
 export async function generateMetadata(): Promise<Metadata> {
