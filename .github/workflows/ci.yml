@@ -1,5 +1,9 @@
 name: CI
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches-ignore: [main] # main is tested by deploy.yml before deploying
+  workflow_call:
 jobs:
   test:
     runs-on: ubuntu-latest

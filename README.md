@@ -118,6 +118,24 @@ The webhook does the same independently, so a closed browser tab still confirms 
 orders release their stock after 30 minutes. Test with Razorpay test cards/UPI in test mode; the app never
 simulates a successful payment.
 
+## Deployment on Netlify (GitHub Actions)
+
+`.github/workflows/deploy.yml` deploys every push to `main`: tests → copies secrets into Netlify's production
+environment → `prisma migrate deploy` → `netlify deploy --build --prod` → checks `/api/health`.
+
+1. Create a hosted Postgres (Netlify DB / Neon / Supabase / RDS). A `localhost` URL cannot work in production.
+2. In GitHub → Settings → Secrets and variables → Actions, add `NETLIFY_AUTH_TOKEN`, `NETLIFY_SITE_ID`,
+   `DATABASE_URL`, `CRON_SECRET` (plus optional Razorpay / S3 secrets listed at the top of `deploy.yml`).
+   Optionally add a repository variable `SITE_URL` (default `https://clothecoms.netlify.app`).
+3. In Netlify → Project configuration → Build & deploy → Continuous deployment, set **Builds: Stopped** so only
+   the workflow deploys.
+4. Run the workflow (Actions → Deploy → Run workflow) or push to `main`.
+5. Seed once if you want demo data: `DATABASE_URL="<hosted url>" npm run db:seed`, and create a real admin with
+   `npm run admin:create`.
+
+`/api/health` returns `{"ok":true}` when the site can reach a migrated database, otherwise the reason.
+`release-reservations.yml` calls the stock-release job every ~10 minutes.
+
 ## Deployment on AWS
 
 A small, low-cost setup that covers HTTPS, secrets and backups:

@@ -1,0 +1,93 @@
+name: Deploy
+
+# Push to main → tests → sync Netlify env from GitHub secrets → DB migrations → build + deploy → health check.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   NETLIFY_AUTH_TOKEN   Netlify → User settings → Applications → Personal access tokens
+#   NETLIFY_SITE_ID      Netlify → Project configuration → General → Project ID
+#   DATABASE_URL         Hosted Postgres (Neon / Netlify DB / Supabase / RDS), e.g. ...?sslmode=require
+#   CRON_SECRET          openssl rand -hex 32
+# Optional secrets (online payments, image uploads):
+#   RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET
+#   AWS_REGION, S3_BUCKET, NEXT_PUBLIC_CDN_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+# Optional repository variable:
+#   SITE_URL             defaults to https://clothecoms.netlify.app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SITE_URL: ${{ vars.SITE_URL || 'https://clothecoms.netlify.app' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+
+      - name: Check required secrets
+        run: |
+          missing=""
+          for v in NETLIFY_AUTH_TOKEN NETLIFY_SITE_ID DATABASE_URL; do [ -z "${!v}" ] && missing="$missing $v"; done
+          [ -z "${{ secrets.CRON_SECRET }}" ] && missing="$missing CRON_SECRET"
+          if [ -n "$missing" ]; then echo "::error::Missing repository secrets:$missing"; exit 1; fi
+          case "$DATABASE_URL" in
+            *localhost*|*127.0.0.1*|*/var/run/*) echo "::error::DATABASE_URL points to a local database. Use a hosted Postgres URL."; exit 1;;
+          esac
+
+      - run: npm ci
+      - run: npm i -g netlify-cli
+
+      - name: Sync production environment to Netlify
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+          RAZORPAY_WEBHOOK_SECRET: ${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          NEXT_PUBLIC_CDN_URL: ${{ secrets.NEXT_PUBLIC_CDN_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          set_env() { netlify env:set "$1" "$2" --context production --force > /dev/null && echo "set $1"; }
+          set_env DATABASE_URL "$DATABASE_URL"
+          set_env NEXT_PUBLIC_SITE_URL "$SITE_URL"
+          set_env CRON_SECRET "$CRON_SECRET"
+          for v in RAZORPAY_KEY_ID RAZORPAY_KEY_SECRET RAZORPAY_WEBHOOK_SECRET AWS_REGION S3_BUCKET NEXT_PUBLIC_CDN_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            [ -n "${!v}" ] && set_env "$v" "${!v}"
+          done
+          [ -n "$RAZORPAY_KEY_ID" ] && set_env NEXT_PUBLIC_RAZORPAY_KEY_ID "$RAZORPAY_KEY_ID"
+          true
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Build and deploy to Netlify
+        run: netlify deploy --build --prod --context production --message "GitHub ${{ github.sha }}"
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 12); do
+            body=$(curl -s -m 30 "$SITE_URL/api/health" || true)
+            echo "$body"
+            case "$body" in *'"ok":true'*) echo "Site is healthy"; exit 0;; esac
+            sleep 10
+          done
+          echo "::error::Health check failed: $body"
+          exit 1

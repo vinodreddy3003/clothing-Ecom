@@ -1,0 +1,20 @@
+name: Release unpaid reservations
+
+# Cancels unpaid online orders older than 30 minutes and returns their stock.
+# GitHub runs schedules on a best-effort basis (every ~10 minutes here); the admin dashboard also runs this on load.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call release endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://clothecoms.netlify.app' }}
+        run: |
+          [ -z "$CRON_SECRET" ] && { echo "CRON_SECRET not set; skipping"; exit 0; }
+          curl -fsS -m 60 -X POST -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/release-reservations"
